@@ -1,4 +1,4 @@
-﻿// Copyright (c) AlphaSierraPapa for the SharpDevelop Team (for details please see \doc\copyright.txt)
+// Copyright (c) AlphaSierraPapa for the SharpDevelop Team (for details please see \doc\copyright.txt)
 // This code is distributed under the GNU LGPL (for details please see \doc\license.txt)
 
 using System;
@@ -36,7 +36,7 @@ namespace ICSharpCode.TreeView
 
 			VirtualizingStackPanel.VirtualizationModeProperty.OverrideMetadata(typeof(SharpTreeView),
 			                                                                   new FrameworkPropertyMetadata(VirtualizationMode.Recycling));
-			
+
 			RegisterCommands();
 		}
 
@@ -115,7 +115,7 @@ namespace ICSharpCode.TreeView
 		public static readonly DependencyProperty ShowAlternationProperty =
 			DependencyProperty.RegisterAttached("ShowAlternation", typeof(bool), typeof(SharpTreeView),
 			                                    new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.Inherits));
-		
+
 		protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
 		{
 			base.OnPropertyChanged(e);
@@ -128,6 +128,21 @@ namespace ICSharpCode.TreeView
 
 		TreeFlattener flattener;
 		bool updatesLocked;
+
+		public IDisposable LockUpdates() => new UpdateLock(this);
+
+		class UpdateLock : IDisposable
+		{
+			SharpTreeView instance;
+
+			public UpdateLock(SharpTreeView instance)
+			{
+				this.instance = instance;
+				this.instance.updatesLocked = true;
+			}
+
+			public void Dispose() => instance.updatesLocked = false;
+		}
 
 		void Reload()
 		{
@@ -205,9 +220,9 @@ namespace ICSharpCode.TreeView
 				container.NodeView.LinesRenderer.InvalidateVisual();
 			}
 		}
-		
+
 		bool doNotScrollOnExpanding;
-		
+
 		/// <summary>
 		/// Handles the node expanding event in the tree view.
 		/// This method gets called only if the node is in the visible region (a SharpTreeNodeView exists).
@@ -298,9 +313,22 @@ namespace ICSharpCode.TreeView
 					}
 					break;
 				case Key.Return:
-				case Key.Space:
 					if (container != null && Keyboard.Modifiers == ModifierKeys.None && this.SelectedItems.Count == 1 && this.SelectedItem == container.Node) {
 						container.Node.ActivateItem(e);
+						e.Handled = true;
+					}
+					break;
+				case Key.Space:
+					if (container != null && Keyboard.Modifiers == ModifierKeys.None && this.SelectedItems.Count == 1 && this.SelectedItem == container.Node) {
+						e.Handled = true;
+						if (container.Node.IsCheckable) {
+							if (container.Node.IsChecked == null) // If partially selected, we want to select everything
+								container.Node.IsChecked = true;
+							else
+								container.Node.IsChecked = !container.Node.IsChecked;
+						} else {
+							container.Node.ActivateItem(e);
+						}
 					}
 					break;
 				case Key.Add:
@@ -322,11 +350,33 @@ namespace ICSharpCode.TreeView
 						e.Handled = true;
 					}
 					break;
+				case Key.Back:
+					if (IsTextSearchEnabled) {
+						var instance = SharpTreeViewTextSearch.GetInstance(this);
+						if (instance != null) {
+							instance.RevertLastCharacter();
+							e.Handled = true;
+						}
+					}
+					break;
 			}
 			if (!e.Handled)
 				base.OnKeyDown(e);
 		}
-		
+
+		protected override void OnTextInput(TextCompositionEventArgs e)
+		{
+			if (!string.IsNullOrEmpty(e.Text) && IsTextSearchEnabled && (e.OriginalSource == this || ItemsControl.ItemsControlFromItemContainer(e.OriginalSource as DependencyObject) == this)) {
+				var instance = SharpTreeViewTextSearch.GetInstance(this);
+				if (instance != null) {
+					instance.Search(e.Text);
+					e.Handled = true;
+				}
+			}
+			if (!e.Handled)
+				base.OnTextInput(e);
+		}
+
 		void ExpandRecursively(SharpTreeNode node)
 		{
 			if (node.CanExpandRecursively) {
@@ -336,7 +386,7 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		/// <summary>
 		/// Scrolls the specified node in view and sets keyboard focus on it.
 		/// </summary>
@@ -352,7 +402,7 @@ namespace ICSharpCode.TreeView
 				this.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new DispatcherOperationCallback(this.OnFocusItem), node);
 			}
 		}
-		
+
 		public void ScrollIntoView(SharpTreeNode node)
 		{
 			if (node == null)
@@ -363,7 +413,7 @@ namespace ICSharpCode.TreeView
 			doNotScrollOnExpanding = false;
 			base.ScrollIntoView(node);
 		}
-		
+
 		object OnFocusItem(object item)
 		{
 			FrameworkElement element = this.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
@@ -373,8 +423,10 @@ namespace ICSharpCode.TreeView
 			return null;
 		}
 
+		protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() => new SharpTreeViewAutomationPeer(this);
+
 		#region Track selection
-		
+
 		protected override void OnSelectionChanged(SelectionChangedEventArgs e)
 		{
 			foreach (SharpTreeNode node in e.RemovedItems) {
@@ -385,9 +437,9 @@ namespace ICSharpCode.TreeView
 			}
 			base.OnSelectionChanged(e);
 		}
-		
+
 		#endregion
-		
+
 		#region Drag and Drop
 		protected override void OnDragEnter(DragEventArgs e)
 		{
@@ -397,7 +449,7 @@ namespace ICSharpCode.TreeView
 		protected override void OnDragOver(DragEventArgs e)
 		{
 			e.Effects = DragDropEffects.None;
-			
+
 			if (Root != null && !ShowRoot) {
 				e.Handled = true;
 				Root.CanDrop(e, Root.Children.Count);
@@ -608,7 +660,7 @@ namespace ICSharpCode.TreeView
 				}
 
 				insertMarker.Margin = new Thickness(p.X, p.Y, 0, 0);
-				
+
 				SharpTreeNodeView secondNodeView = null;
 				var index = flattener.IndexOf(item.Node);
 
@@ -620,7 +672,7 @@ namespace ICSharpCode.TreeView
 				else if (index + 1 < flattener.Count) {
 					secondNodeView = (ItemContainerGenerator.ContainerFromIndex(index + 1) as SharpTreeViewItem).NodeView;
 				}
-				
+
 				var w = p1.X + previewNodeView.ActualWidth - p.X;
 
 				if (secondNodeView != null) {
@@ -644,7 +696,7 @@ namespace ICSharpCode.TreeView
 			}
 		}
 		#endregion
-		
+
 		#region Cut / Copy / Paste / Delete Commands
 
 		static void RegisterCommands()
@@ -652,20 +704,20 @@ namespace ICSharpCode.TreeView
 			// The asm editor should be the only one removing nodes
 // 			CommandManager.RegisterClassCommandBinding(typeof(SharpTreeView),
 // 			                                           new CommandBinding(ApplicationCommands.Cut, HandleExecuted_Cut, HandleCanExecute_Cut));
-// 
+//
 // 			CommandManager.RegisterClassCommandBinding(typeof(SharpTreeView),
 // 			                                           new CommandBinding(ApplicationCommands.Copy, HandleExecuted_Copy, HandleCanExecute_Copy));
-// 
+//
 // 			CommandManager.RegisterClassCommandBinding(typeof(SharpTreeView),
 // 			                                           new CommandBinding(ApplicationCommands.Paste, HandleExecuted_Paste, HandleCanExecute_Paste));
-// 
+//
 // 			CommandManager.RegisterClassCommandBinding(typeof(SharpTreeView),
 // 			                                           new CommandBinding(ApplicationCommands.Delete, HandleExecuted_Delete, HandleCanExecute_Delete));
 		}
 
 		static void HandleExecuted_Cut(object sender, ExecutedRoutedEventArgs e)
 		{
-			
+
 		}
 
 		static void HandleCanExecute_Cut(object sender, CanExecuteRoutedEventArgs e)
@@ -675,7 +727,7 @@ namespace ICSharpCode.TreeView
 
 		static void HandleExecuted_Copy(object sender, ExecutedRoutedEventArgs e)
 		{
-			
+
 		}
 
 		static void HandleCanExecute_Copy(object sender, CanExecuteRoutedEventArgs e)
@@ -685,7 +737,7 @@ namespace ICSharpCode.TreeView
 
 		static void HandleExecuted_Paste(object sender, ExecutedRoutedEventArgs e)
 		{
-			
+
 		}
 
 		static void HandleCanExecute_Paste(object sender, CanExecuteRoutedEventArgs e)
@@ -715,7 +767,7 @@ namespace ICSharpCode.TreeView
 			SharpTreeView treeView = (SharpTreeView)sender;
 			e.CanExecute = treeView.GetTopLevelSelection().All(node => node.CanDelete());
 		}
-		
+
 		/// <summary>
 		/// Gets the selected items which do not have any of their ancestors selected.
 		/// </summary>

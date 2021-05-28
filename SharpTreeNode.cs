@@ -21,13 +21,13 @@ namespace ICSharpCode.TreeView
 		SharpTreeNodeCollection modelChildren;
 		internal SharpTreeNode modelParent;
 		bool isVisible = true;
-		
+
 		void UpdateIsVisible(bool parentIsVisible, bool updateFlattener)
 		{
 			bool newIsVisible = parentIsVisible && !isHidden;
 			if (isVisible != newIsVisible) {
 				isVisible = newIsVisible;
-				
+
 				// invalidate the augmented data
 				SharpTreeNode node = this;
 				while (node != null && node.totalListLength >= 0) {
@@ -41,11 +41,11 @@ namespace ICSharpCode.TreeView
 				}
 				// also update the model children:
 				UpdateChildIsVisible(false);
-				
+
 				// Validate our invariants:
 				if (updateFlattener)
 					CheckRootInvariants();
-				
+
 				// Tell the flattener about the removed nodes:
 				if (removedNodes != null) {
 					var flattener = GetListRoot().treeFlattener;
@@ -66,9 +66,9 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		protected virtual void OnIsVisibleChanged() {}
-		
+
 		void UpdateChildIsVisible(bool updateFlattener)
 		{
 			if (modelChildren != null && modelChildren.Count > 0) {
@@ -78,13 +78,13 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		#region Main
-		
+
 		public SharpTreeNode()
 		{
 		}
-		
+
 		public SharpTreeNodeCollection Children {
 			get {
 				if (modelChildren == null)
@@ -92,35 +92,35 @@ namespace ICSharpCode.TreeView
 				return modelChildren;
 			}
 		}
-		
+
 		public SharpTreeNode Parent {
 			get { return modelParent; }
 		}
-		
+
 		public virtual object Text
 		{
 			get { return null; }
 		}
-		
+
 		public virtual Brush Foreground {
 			get { return SystemColors.WindowTextBrush; }
 		}
-		
+
 		public virtual object Icon
 		{
 			get { return null; }
 		}
-		
+
 		public virtual object ToolTip
 		{
 			get { return null; }
 		}
-		
+
 		public int Level
 		{
 			get { return Parent != null ? Parent.Level + 1 : 0; }
 		}
-		
+
 		public bool IsRoot
 		{
 			get { return Parent == null; }
@@ -129,9 +129,9 @@ namespace ICSharpCode.TreeView
 		public virtual bool SingleClickExpandsChildren {
 			get { return false; }
 		}
-		
+
 		bool isHidden;
-		
+
 		public bool IsHidden
 		{
 			get { return isHidden; }
@@ -146,16 +146,16 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		/// <summary>
 		/// Return true when this node is not hidden and when all parent nodes are expanded and not hidden.
 		/// </summary>
 		public bool IsVisible {
 			get { return isVisible; }
 		}
-		
+
 		bool isSelected;
-		
+
 		public bool IsSelected {
 			get { return isSelected; }
 			set {
@@ -165,9 +165,9 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		#endregion
-		
+
 		#region OnChildrenChanged
 		internal protected virtual void OnChildrenChanged(NotifyCollectionChangedEventArgs e)
 		{
@@ -181,16 +181,16 @@ namespace ICSharpCode.TreeView
 					SharpTreeNode removeEnd = node;
 					while (removeEnd.modelChildren != null && removeEnd.modelChildren.Count > 0)
 						removeEnd = removeEnd.modelChildren.Last();
-					
+
 					List<SharpTreeNode> removedNodes = null;
 					int visibleIndexOfRemoval = 0;
 					if (node.isVisible) {
 						visibleIndexOfRemoval = GetVisibleIndexForNode(node);
 						removedNodes = node.VisibleDescendantsAndSelf().ToList();
 					}
-					
+
 					RemoveNodes(node, removeEnd);
-					
+
 					if (removedNodes != null) {
 						if (flattener != null) {
 							flattener.NodesRemoved(visibleIndexOfRemoval, removedNodes);
@@ -204,18 +204,18 @@ namespace ICSharpCode.TreeView
 					insertionPos = null;
 				else
 					insertionPos = modelChildren[e.NewStartingIndex - 1];
-				
+
 				foreach (SharpTreeNode node in e.NewItems) {
 					Debug.Assert(node.modelParent == null);
 					node.modelParent = this;
 					node.UpdateIsVisible(isVisible && isExpanded, false);
 					//Debug.WriteLine("Inserting {0} after {1}", node, insertionPos);
-					
+
 					while (insertionPos != null && insertionPos.modelChildren != null && insertionPos.modelChildren.Count > 0) {
 						insertionPos = insertionPos.modelChildren.Last();
 					}
 					InsertNodeAfter(insertionPos ?? this, node);
-					
+
 					insertionPos = node;
 					if (node.isVisible) {
 						if (flattener != null) {
@@ -224,26 +224,26 @@ namespace ICSharpCode.TreeView
 					}
 				}
 			}
-			
+
 			RaisePropertyChanged("ShowExpander");
 			RaiseIsLastChangedIfNeeded(e);
 		}
 		#endregion
-		
+
 		#region Expanding / LazyLoading
-		
+
 		public virtual object ExpandedIcon
 		{
 			get { return Icon; }
 		}
-		
+
 		public virtual bool ShowExpander
 		{
 			get { return LazyLoading || Children.Any(c => !c.isHidden); }
 		}
-		
+
 		bool isExpanded;
-		
+
 		public bool IsExpanded
 		{
 			get { return isExpanded; }
@@ -262,12 +262,12 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		protected virtual void OnExpanding() {}
 		protected virtual void OnCollapsing() {}
-		
+
 		bool lazyLoading;
-		
+
 		public bool LazyLoading
 		{
 			get { return lazyLoading; }
@@ -285,9 +285,9 @@ namespace ICSharpCode.TreeView
 				RaisePropertyChanged("ShowExpander");
 			}
 		}
-		
+
 		bool canExpandRecursively = true;
-		
+
 		/// <summary>
 		/// Gets whether this node can be expanded recursively.
 		/// If not overridden, this property returns false if the node is using lazy-loading, and true otherwise.
@@ -295,17 +295,17 @@ namespace ICSharpCode.TreeView
 		public virtual bool CanExpandRecursively {
 			get { return canExpandRecursively; }
 		}
-		
+
 		public virtual bool ShowIcon
 		{
 			get { return Icon != null; }
 		}
-		
+
 		protected virtual void LoadChildren()
 		{
 			throw new NotSupportedException(GetType().Name + " does not support lazy loading");
 		}
-		
+
 		/// <summary>
 		/// Ensures the children were initialized (loads children if lazy loading is enabled)
 		/// </summary>
@@ -316,59 +316,54 @@ namespace ICSharpCode.TreeView
 				LoadChildren();
 			}
 		}
-		
+
 		#endregion
-		
+
 		#region Ancestors / Descendants
-		
+
 		public IEnumerable<SharpTreeNode> Descendants()
 		{
 			return TreeTraversal.PreOrder(this.Children, n => n.Children);
 		}
-		
+
 		public IEnumerable<SharpTreeNode> DescendantsAndSelf()
 		{
 			return TreeTraversal.PreOrder(this, n => n.Children);
 		}
-		
+
 		internal IEnumerable<SharpTreeNode> VisibleDescendants()
 		{
 			return TreeTraversal.PreOrder(this.Children.Where(c => c.isVisible), n => n.Children.Where(c => c.isVisible));
 		}
-		
+
 		internal IEnumerable<SharpTreeNode> VisibleDescendantsAndSelf()
 		{
 			return TreeTraversal.PreOrder(this, n => n.Children.Where(c => c.isVisible));
 		}
-		
+
 		public IEnumerable<SharpTreeNode> Ancestors()
 		{
-			var node = this;
-			while (node.Parent != null) {
-				yield return node.Parent;
-				node = node.Parent;
-			}
+			for (var n = Parent; n != null; n = n.Parent)
+				yield return n;
 		}
-		
+
 		public IEnumerable<SharpTreeNode> AncestorsAndSelf()
 		{
-			yield return this;
-			foreach (var node in Ancestors()) {
-				yield return node;
-			}
+			for (var n = this; n != null; n = n.Parent)
+				yield return n;
 		}
-		
+
 		#endregion
-		
+
 		#region Editing
-		
+
 		public virtual bool IsEditable
 		{
 			get { return false; }
 		}
-		
+
 		bool isEditing;
-		
+
 		public bool IsEditing
 		{
 			get { return isEditing; }
@@ -380,39 +375,39 @@ namespace ICSharpCode.TreeView
 				}
 			}
 		}
-		
+
 		public virtual string LoadEditText()
 		{
 			return null;
 		}
-		
+
 		public virtual bool SaveEditText(string value)
 		{
 			return true;
 		}
-		
+
 		#endregion
-		
+
 		#region Checkboxes
-		
+
 		public virtual bool IsCheckable {
 			get { return false; }
 		}
-		
+
 		bool? isChecked;
-		
+
 		public bool? IsChecked {
 			get { return isChecked; }
 			set {
 				SetIsChecked(value, true);
 			}
 		}
-		
+
 		void SetIsChecked(bool? value, bool update)
 		{
 			if (isChecked != value) {
 				isChecked = value;
-				
+
 				if (update) {
 					if (IsChecked != null) {
 						foreach (var child in Descendants()) {
@@ -421,7 +416,7 @@ namespace ICSharpCode.TreeView
 							}
 						}
 					}
-					
+
 					foreach (var parent in Ancestors()) {
 						if (parent.IsCheckable) {
 							if (!parent.TryValueForIsChecked(true)) {
@@ -432,11 +427,11 @@ namespace ICSharpCode.TreeView
 						}
 					}
 				}
-				
+
 				RaisePropertyChanged("IsChecked");
 			}
 		}
-		
+
 		bool TryValueForIsChecked(bool? value)
 		{
 			if (Children.Where(n => n.IsCheckable).All(n => n.IsChecked == value)) {
@@ -445,30 +440,30 @@ namespace ICSharpCode.TreeView
 			}
 			return false;
 		}
-		
+
 		#endregion
-		
+
 		#region Cut / Copy / Paste / Delete
-		
+
 		public bool IsCut { get { return false; } }
 		/*
 			static List<SharpTreeNode> cuttedNodes = new List<SharpTreeNode>();
 			static IDataObject cuttedData;
 			static EventHandler requerySuggestedHandler; // for weak event
-	
+
 			static void StartCuttedDataWatcher()
 			{
 				requerySuggestedHandler = new EventHandler(CommandManager_RequerySuggested);
 				CommandManager.RequerySuggested += requerySuggestedHandler;
 			}
-	
+
 			static void CommandManager_RequerySuggested(object sender, EventArgs e)
 			{
 				if (cuttedData != null && !Clipboard.IsCurrent(cuttedData)) {
 					ClearCuttedData();
 				}
 			}
-	
+
 			static void ClearCuttedData()
 			{
 				foreach (var node in cuttedNodes) {
@@ -477,7 +472,7 @@ namespace ICSharpCode.TreeView
 				cuttedNodes.Clear();
 				cuttedData = null;
 			}
-	
+
 			//static public IEnumerable<SharpTreeNode> PurifyNodes(IEnumerable<SharpTreeNode> nodes)
 			//{
 			//    var list = nodes.ToList();
@@ -491,9 +486,9 @@ namespace ICSharpCode.TreeView
 			//    }
 			//    return list;
 			//}
-	
+
 			bool isCut;
-	
+
 			public bool IsCut
 			{
 				get { return isCut; }
@@ -503,81 +498,81 @@ namespace ICSharpCode.TreeView
 					RaisePropertyChanged("IsCut");
 				}
 			}
-	
+
 			internal bool InternalCanCut()
 			{
 				return InternalCanCopy() && InternalCanDelete();
 			}
-	
+
 			internal void InternalCut()
 			{
 				ClearCuttedData();
 				cuttedData = Copy(ActiveNodesArray);
 				Clipboard.SetDataObject(cuttedData);
-	
+
 				foreach (var node in ActiveNodes) {
 					node.IsCut = true;
 					cuttedNodes.Add(node);
 				}
 			}
-	
+
 			internal bool InternalCanCopy()
 			{
 				return CanCopy(ActiveNodesArray);
 			}
-	
+
 			internal void InternalCopy()
 			{
 				Clipboard.SetDataObject(Copy(ActiveNodesArray));
 			}
-	
+
 			internal bool InternalCanPaste()
 			{
 				return CanPaste(Clipboard.GetDataObject());
 			}
-	
+
 			internal void InternalPaste()
 			{
 				Paste(Clipboard.GetDataObject());
-	
+
 				if (cuttedData != null) {
 					DeleteCore(cuttedNodes.ToArray());
 					ClearCuttedData();
 				}
 			}
 		 */
-		
+
 		public virtual bool CanDelete()
 		{
 			return false;
 		}
-		
+
 		public virtual void Delete()
 		{
 			throw new NotSupportedException(GetType().Name + " does not support deletion");
 		}
-		
+
 		public virtual void DeleteCore()
 		{
 			throw new NotSupportedException(GetType().Name + " does not support deletion");
 		}
-		
+
 		public virtual IDataObject Copy(SharpTreeNode[] nodes)
 		{
 			throw new NotSupportedException(GetType().Name + " does not support copy/paste or drag'n'drop");
 		}
-		
+
 		/*
 			public virtual bool CanCopy(SharpTreeNode[] nodes)
 			{
 				return false;
 			}
-	
+
 			public virtual bool CanPaste(IDataObject data)
 			{
 				return false;
 			}
-	
+
 			public virtual void Paste(IDataObject data)
 			{
 				EnsureLazyChildren();
@@ -585,13 +580,13 @@ namespace ICSharpCode.TreeView
 			}
 		 */
 		#endregion
-		
+
 		#region Drag and Drop
 		public virtual bool CanDrag(SharpTreeNode[] nodes)
 		{
 			return false;
 		}
-		
+
 		public virtual void StartDrag(DependencyObject dragSource, SharpTreeNode[] nodes)
 		{
 			DragDropEffects effects = DragDropEffects.All;
@@ -603,30 +598,30 @@ namespace ICSharpCode.TreeView
 					node.DeleteCore();
 			}
 		}
-		
+
 		public virtual bool CanDrop(DragEventArgs e, int index)
 		{
 			return false;
 		}
-		
+
 		internal void InternalDrop(DragEventArgs e, int index)
 		{
 			if (LazyLoading) {
 				EnsureLazyChildren();
 				index = Children.Count;
 			}
-			
+
 			Drop(e, index);
 		}
-		
+
 		public virtual void Drop(DragEventArgs e, int index)
 		{
 			throw new NotSupportedException(GetType().Name + " does not support Drop()");
 		}
 		#endregion
-		
+
 		#region IsLast (for TreeView lines)
-		
+
 		public bool IsLast
 		{
 			get
@@ -635,7 +630,7 @@ namespace ICSharpCode.TreeView
 					Parent.Children[Parent.Children.Count - 1] == this;
 			}
 		}
-		
+
 		void RaiseIsLastChangedIfNeeded(NotifyCollectionChangedEventArgs e)
 		{
 			switch (e.Action) {
@@ -656,13 +651,13 @@ namespace ICSharpCode.TreeView
 					break;
 			}
 		}
-		
+
 		#endregion
-		
+
 		#region INotifyPropertyChanged Members
-		
+
 		public event PropertyChangedEventHandler PropertyChanged;
-		
+
 		protected bool HasPropertyChangedHandlers {
 			get { return PropertyChanged != null; }
 		}
@@ -673,16 +668,16 @@ namespace ICSharpCode.TreeView
 				PropertyChanged(this, new PropertyChangedEventArgs(name));
 			}
 		}
-		
+
 		#endregion
-		
+
 		/// <summary>
 		/// Gets called when the item is double-clicked.
 		/// </summary>
 		public virtual void ActivateItem(RoutedEventArgs e)
 		{
 		}
-		
+
 		public override string ToString()
 		{
 			// used for keyboard navigation

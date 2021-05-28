@@ -71,17 +71,25 @@ namespace ICSharpCode.TreeView
 		{
 			switch (e.Key) {
 				case Key.F2:
-//					if (SharpTreeNode.ActiveNodes.Count == 1 && Node.IsEditable) {
-//						Node.IsEditing = true;
-//						e.Handled = true;
-//					}
+					if (Node != null) {
+						if (Node.IsEditable && ParentTreeView != null && ParentTreeView.SelectedItems.Count == 1 && ParentTreeView.SelectedItems[0] == Node) {
+							Node.IsEditing = true;
+							e.Handled = true;
+						}
+					}
 					break;
 				case Key.Escape:
-					if (Node != null)
-						Node.IsEditing = false;
+					if (Node != null) {
+						if (Node.IsEditing) {
+							Node.IsEditing = false;
+							e.Handled = true;
+						}
+					}
 					break;
 			}
 		}
+
+		protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() => new SharpTreeViewItemAutomationPeer(this);
 
 		#region Mouse
 
