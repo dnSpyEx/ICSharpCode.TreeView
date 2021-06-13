@@ -15,6 +15,9 @@ namespace ICSharpCode.TreeView
 {
 	public class SharpTreeViewItem : ListViewItem
 	{
+		static readonly ClickHandler<Tuple<MouseButtonEventArgs, SharpTreeNode>> doubleClickHandler
+			= new ClickHandler<Tuple<MouseButtonEventArgs, SharpTreeNode>>();
+
 		static SharpTreeViewItem()
 		{
 			DefaultStyleKeyProperty.OverrideMetadata(typeof(SharpTreeViewItem),
@@ -97,17 +100,6 @@ namespace ICSharpCode.TreeView
 		bool wasSelected;
 		bool wasDoubleClick;
 
-		protected override void OnMouseDoubleClick(MouseButtonEventArgs e)
-		{
-			if (!ParentTreeView.CanDragAndDrop) {
-				OnDoubleClick(e);
-				e.Handled = true;
-				return;
-			}
-
-			base.OnMouseDoubleClick(e);
-		}
-
 		protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
 		{
 			wasSelected = IsSelected;
@@ -115,16 +107,17 @@ namespace ICSharpCode.TreeView
 				base.OnMouseLeftButtonDown(e);
 			}
 
-			if (!ParentTreeView.CanDragAndDrop)
-				wasDoubleClick = false;
-			else if (Mouse.LeftButton == MouseButtonState.Pressed) {
-				startPoint = e.GetPosition(null);
-				CaptureMouse();
+			if (ParentTreeView.CanDragAndDrop) {
+				if (Mouse.LeftButton == MouseButtonState.Pressed) {
+					startPoint = e.GetPosition(null);
+					CaptureMouse();
 
-				if (e.ClickCount == 2) {
-					wasDoubleClick = true;
+					if (e.ClickCount == 2)
+						wasDoubleClick = true;
 				}
 			}
+
+			doubleClickHandler.MouseDown(new Tuple<MouseButtonEventArgs, SharpTreeNode>(e, Node));
 		}
 
 		protected override void OnMouseMove(MouseEventArgs e)
@@ -142,19 +135,38 @@ namespace ICSharpCode.TreeView
 			}
 		}
 
+		private void SingleClickAction(Tuple<MouseButtonEventArgs, SharpTreeNode> context)
+		{
+			var node = context.Item2;
+			if (!node.IsExpanded && node.SingleClickExpandsChildren)
+				if (!node.IsRoot || ParentTreeView.ShowRootExpander)
+					node.IsExpanded = !node.IsExpanded;
+		}
+
+		private void DoubleClickAction(Tuple<MouseButtonEventArgs, SharpTreeNode> context)
+		{
+			var e = context.Item1;
+			var node = context.Item2;
+			if (node != null)
+				Node.ActivateItem(e);
+		}
+
 		protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
 		{
-			if (Node == null) {
-				// Ignore it: Node is sometimes null
-			}
-			else if (wasDoubleClick) {
-				wasDoubleClick = false;
-				OnDoubleClick(e);
-			}
-			else if (!Node.IsExpanded && Node.SingleClickExpandsChildren) {
-				if (!Node.IsRoot || ParentTreeView.ShowRootExpander) {
-					Node.IsExpanded = !Node.IsExpanded;
+			if (Node != null)
+			{
+				if (ParentTreeView.CanDragAndDrop)
+				{
+					if (wasDoubleClick)
+					{
+						wasDoubleClick = false;
+						OnDoubleClick(e);
+					}
+					else
+						SingleClickAction(new Tuple<MouseButtonEventArgs, SharpTreeNode>(e, Node));
 				}
+				else
+					doubleClickHandler.MouseUp(SingleClickAction, DoubleClickAction);
 			}
 
 			ReleaseMouseCapture();
