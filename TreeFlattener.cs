@@ -5,14 +5,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 
 namespace ICSharpCode.TreeView
 {
-	sealed class TreeFlattener : IList, INotifyCollectionChanged
+	sealed class TreeFlattener : IList<SharpTreeNode>, INotifyCollectionChanged
 	{
 		/// <summary>
 		/// The root node of the flat list tree.
@@ -20,8 +17,7 @@ namespace ICSharpCode.TreeView
 		/// </summary>
 		internal SharpTreeNode root;
 		readonly bool includeRoot;
-		readonly object syncRoot = new object();
-		
+
 		public TreeFlattener(SharpTreeNode modelRoot, bool includeRoot)
 		{
 			this.root = modelRoot;
@@ -41,7 +37,12 @@ namespace ICSharpCode.TreeView
 			if (CollectionChanged != null)
 				CollectionChanged(this, e);
 		}
-		
+
+		public void NodesInserted(int index, List<SharpTreeNode> nodes) {
+			if (!includeRoot) index--;
+			RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, nodes, index));
+		}
+
 		public void NodesInserted(int index, IEnumerable<SharpTreeNode> nodes)
 		{
 			if (!includeRoot) index--;
@@ -49,22 +50,26 @@ namespace ICSharpCode.TreeView
 				RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, node, index++));
 			}
 		}
-		
-		public void NodesRemoved(int index, IEnumerable<SharpTreeNode> nodes)
-		{
+
+		public void NodesRemoved(int index, List<SharpTreeNode> nodes) {
 			if (!includeRoot) index--;
-			foreach (SharpTreeNode node in nodes) {
+			RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, nodes, index));
+		}
+
+		public void NodesRemoved(int index, IEnumerable<SharpTreeNode> nodes) {
+			if (!includeRoot) index--;
+			foreach (SharpTreeNode node in nodes)  {
 				RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, node, index));
 			}
 		}
-		
+
 		public void Stop()
 		{
 			Debug.Assert(root.treeFlattener == this);
 			root.treeFlattener = null;
 		}
-		
-		public object this[int index] {
+
+		public SharpTreeNode this[int index] {
 			get {
 				if (index < 0 || index >= this.Count)
 					throw new ArgumentOutOfRangeException();
@@ -81,16 +86,15 @@ namespace ICSharpCode.TreeView
 				throw new NotSupportedException();
 			}
 		}
-		
+
 		public int Count {
 			get {
 				return includeRoot ? root.GetTotalListLength() : root.GetTotalListLength() - 1;
 			}
 		}
-		
-		public int IndexOf(object item)
+
+		public int IndexOf(SharpTreeNode node)
 		{
-			SharpTreeNode node = item as SharpTreeNode;
 			if (node != null && node.IsVisible && node.GetListRoot() == root) {
 				if (includeRoot)
 					return SharpTreeNode.GetVisibleIndexForNode(node);
@@ -100,66 +104,55 @@ namespace ICSharpCode.TreeView
 				return -1;
 			}
 		}
-		
-		bool IList.IsReadOnly {
+
+		bool ICollection<SharpTreeNode>.IsReadOnly {
 			get { return true; }
 		}
-		
-		bool IList.IsFixedSize {
-			get { return false; }
-		}
-		
-		bool ICollection.IsSynchronized {
-			get { return false; }
-		}
-		
-		object ICollection.SyncRoot {
-			get {
-				return syncRoot;
-			}
-		}
-		
-		void IList.Insert(int index, object item)
+
+		void IList<SharpTreeNode>.Insert(int index, SharpTreeNode item)
 		{
 			throw new NotSupportedException();
 		}
-		
-		void IList.RemoveAt(int index)
+
+		void IList<SharpTreeNode>.RemoveAt(int index)
 		{
 			throw new NotSupportedException();
 		}
-		
-		int IList.Add(object item)
+
+		void ICollection<SharpTreeNode>.Add(SharpTreeNode item)
 		{
 			throw new NotSupportedException();
 		}
-		
-		void IList.Clear()
+
+		void ICollection<SharpTreeNode>.Clear()
 		{
 			throw new NotSupportedException();
 		}
-		
-		public bool Contains(object item)
+
+		public bool Contains(SharpTreeNode item)
 		{
 			return IndexOf(item) >= 0;
 		}
-		
-		public void CopyTo(Array array, int arrayIndex)
+
+		public void CopyTo(SharpTreeNode[] array, int arrayIndex)
 		{
-			foreach (object item in this)
-				array.SetValue(item, arrayIndex++);
+			for (int i = 0; i < this.Count; i++) {
+				array[arrayIndex++] = this[i];
+			}
 		}
-		
-		void IList.Remove(object item)
+
+		bool ICollection<SharpTreeNode>.Remove(SharpTreeNode item)
 		{
 			throw new NotSupportedException();
 		}
-		
-		public IEnumerator GetEnumerator()
+
+		public IEnumerator<SharpTreeNode> GetEnumerator()
 		{
 			for (int i = 0; i < this.Count; i++) {
 				yield return this[i];
 			}
 		}
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 	}
 }

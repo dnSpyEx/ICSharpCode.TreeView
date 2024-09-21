@@ -627,6 +627,7 @@ namespace ICSharpCode.TreeView
 			get
 			{
 				return Parent == null ||
+					Parent.Children.Count == 0 ||
 					Parent.Children[Parent.Children.Count - 1] == this;
 			}
 		}
@@ -637,15 +638,15 @@ namespace ICSharpCode.TreeView
 				case NotifyCollectionChangedAction.Add:
 					if (e.NewStartingIndex == Children.Count - 1) {
 						if (Children.Count > 1) {
-							Children[Children.Count - 2].RaisePropertyChanged("IsLast");
+							Children[Children.Count - 2].RaisePropertyChanged(nameof(IsLast));
 						}
-						Children[Children.Count - 1].RaisePropertyChanged("IsLast");
+						Children[Children.Count - 1].RaisePropertyChanged(nameof(IsLast));
 					}
 					break;
 				case NotifyCollectionChangedAction.Remove:
 					if (e.OldStartingIndex == Children.Count) {
 						if (Children.Count > 0) {
-							Children[Children.Count - 1].RaisePropertyChanged("IsLast");
+							Children[Children.Count - 1].RaisePropertyChanged(nameof(IsLast));
 						}
 					}
 					break;

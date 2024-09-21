@@ -148,6 +148,7 @@ namespace ICSharpCode.TreeView
 		{
 			if (flattener != null) {
 				flattener.Stop();
+				flattener.CollectionChanged -= flattener_CollectionChanged;
 			}
 			if (Root != null) {
 				if (!(ShowRoot && ShowRootExpander)) {
@@ -314,8 +315,8 @@ namespace ICSharpCode.TreeView
 					break;
 				case Key.Return:
 					if (container != null && Keyboard.Modifiers == ModifierKeys.None && this.SelectedItems.Count == 1 && this.SelectedItem == container.Node) {
-						container.Node.ActivateItem(e);
 						e.Handled = true;
+						container.Node.ActivateItem(e);
 					}
 					break;
 				case Key.Space:
@@ -785,9 +786,8 @@ namespace ICSharpCode.TreeView
 		/// </summary>
 		public IEnumerable<SharpTreeNode> GetTopLevelSelection()
 		{
-			var selection = this.SelectedItems.OfType<SharpTreeNode>();
-			var selectionHash = new HashSet<SharpTreeNode>(selection);
-			return selection.Where(item => item.Ancestors().All(a => !selectionHash.Contains(a)));
+			var selection = this.SelectedItems.OfType<SharpTreeNode>().ToHashSet();
+			return selection.Where(item => item.Ancestors().All(a => !selection.Contains(a)));
 		}
 
 		#endregion
